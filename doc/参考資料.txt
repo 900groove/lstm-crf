@@ -1,0 +1,2 @@
+PyTorch：Bi-LSTM+CRF①（学習）
+http://kento1109.hatenablog.com/entry/2018/03/04/133355

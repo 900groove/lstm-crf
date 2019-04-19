@@ -1,0 +1,17 @@
+# vim
+*~
+
+# compiled
+*.pyc
+
+# vscode
+.vscode
+
+# model
+model
+
+# data
+data
+
+# notebook
+notebook/.ipynb_checkpoints

@@ -1,0 +1,11 @@
+awscli
+click
+matplotlib
+jupyter
+notebook
+Sphinx
+flake8
+numpy
+pandas
+torch
+sparqlwrapper
