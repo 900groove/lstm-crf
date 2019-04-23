@@ -9,7 +9,8 @@ def shuffle_text(text):
     text_sentence = text.split('。')
     result = []
     for i in range(len(text_sentence)):
-        result.append(''.join(random.sample(text_sentence, len(text_sentence))))
+        result.append(
+            ''.join(random.sample(text_sentence, len(text_sentence))))
     return result
 
 
@@ -19,7 +20,8 @@ def data_augmentation(df):
     for value in df.values:
         texts = shuffle_text(value[1])
         names = np.tile(value[0], len(texts))
-        result_df = pd.DataFrame((np.c_[names, texts]), columns=['name', 'text'])
+        result_df = pd.DataFrame(
+            (np.c_[names, texts]), columns=['name', 'text'])
         df_ = pd.concat([df_, result_df], axis=0)
     return df_
 
@@ -39,9 +41,9 @@ def find_str_index(target, sentence):
 
 
 if __name__ == '__main__':
-    train_df = pd.read_csv('./data/data.csv')
+    train_df = pd.read_csv('../data/data.csv')
     train_df = data_augmentation(train_df)
-    train_df.to_csv('./data/processed.csv', index=False)
+    train_df.to_csv('../data/processed.csv', index=False)
 
     text = []
     text_id = []
@@ -50,7 +52,7 @@ if __name__ == '__main__':
         text.append(_text)
         text_id.append(_text_id)
     train_data = {'feature': text, 'target': text_id}
-    with open('./data/train_data.pickle', mode='wb') as f:
+    with open('../data/train_data.pickle', mode='wb') as f:
         pickle.dump(train_data, f)
 
     word_to_ix = {}
@@ -58,5 +60,5 @@ if __name__ == '__main__':
         for word in sentence:
             if word not in word_to_ix:
                 word_to_ix[word] = len(word_to_ix)
-    with open('./model/word_to_ix.pickle', mode='wb') as f:
+    with open('../model/word_to_ix.pickle', mode='wb') as f:
         pickle.dump(word_to_ix, f)

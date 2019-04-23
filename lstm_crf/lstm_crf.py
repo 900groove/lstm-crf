@@ -16,7 +16,7 @@ def prepare_sequence(seq, to_ix):
 
 
 def log_sum_exp(vec):
-    """Compute log sum exp in a numerically stable way for the forward algorithm"""
+    """対数除算のオーバーフロー及びアンダーフロー回避"""
     max_score = vec[0, argmax(vec)]
     max_score_broadcast = max_score.view(1, -1).expand(1, vec.size()[1])
     return max_score + torch.log(torch.sum(torch.exp(vec-max_score_broadcast)))
@@ -37,10 +37,12 @@ class BiLSTM_CRF(nn.Module):
                             hidden_dim//2,
                             num_layers=1,
                             bidirectional=True)
+        self.dropout = nn.Dropout(0.2)
         self.hidden2tag = nn.Linear(hidden_dim, self.tagset_size)
 
         # 遷移行列を構築し、開始と終了タグの遷移を-10000にすることでこれ以降の遷移を防ぐ
-        self.transitions = nn.Parameter(torch.randn(self.tagset_size, self.tagset_size))
+        self.transitions = nn.Parameter(
+            torch.randn(self.tagset_size, self.tagset_size))
         self.transitions.data[tag_to_ix[START_TAG], :] = -10000
         self.transitions.data[:,  tag_to_ix[STOP_TAG]] = -10000
         self.start_tag = START_TAG
@@ -48,11 +50,11 @@ class BiLSTM_CRF(nn.Module):
 
     def init_hidden(self):
         """LSTMのメモリを初期化"""
-        return (torch.randn(2, 1, self.hidden_dim//2), torch.randn(2, 1, self.hidden_dim//2))
+        return (torch.randn(2, 1, self.hidden_dim//2),
+                torch.randn(2, 1, self.hidden_dim//2))
 
     def _forward_alg(self, feats):
-        """スコア計算"""
-
+        """観測行列スコア計算"""
         # 入力データの観測素性行列を構築（-10000で初期化）
         init_alphas = torch.full((1, self.tagset_size), -10000.)
         # 開始タグを0に変更
@@ -65,7 +67,8 @@ class BiLSTM_CRF(nn.Module):
             # 特定単語に対するそれぞれの品詞
             for next_tag in range(self.tagset_size):
                 # 単語と品詞の共起スコアを計算（初期化した数値を取り出す）
-                emit_score = feat[next_tag].view(1, -1).expand(1, self.tagset_size)
+                emit_score = feat[next_tag].view(1, -1).expand(
+                                                        1, self.tagset_size)
                 # 遷移スコアを計算（初期化した数値を取り出す）
                 trans_score = self.transitions[next_tag].view(1, -1)
                 # 次のタグは初期化された遷移行列に共起スコアと遷移スコアを適応させて計算
@@ -73,7 +76,8 @@ class BiLSTM_CRF(nn.Module):
                 # 特定単語の各品詞スコアを格納
                 alphas_t.append(log_sum_exp(next_tag_var).view(1))
             forward_var = torch.cat(alphas_t).view(1, -1)
-        terminal_var = forward_var + self.transitions[self.tag_to_ix[self.stop_tag]]
+        terminal_var = forward_var + self.transitions[
+                                            self.tag_to_ix[self.stop_tag]]
         alpha = log_sum_exp(terminal_var)
         return alpha
 
@@ -83,14 +87,16 @@ class BiLSTM_CRF(nn.Module):
         embeds = self.word_embeds(sentence).view(len(sentence), 1, -1)
         lstm_out, self.hidden = self.lstm(embeds, self.hidden)
         lstm_out = lstm_out.view(len(sentence), self.hidden_dim)
+        lstm_out = self.dropout(lstm_out)
         lstm_feats = self.hidden2tag(lstm_out)
         return lstm_feats
 
     def _score_sentence(self, feats, tags):
-        """入力文のスコアを計算"""
+        """遷移行列のスコアを計算"""
         score = torch.zeros(1)
         # 各タグをIDに変換しTensor型に変更
-        tags = torch.cat([torch.tensor([self.tag_to_ix[self.start_tag]], dtype=torch.long), tags])
+        tags = torch.cat([torch.tensor([self.tag_to_ix[self.start_tag]],
+                                       dtype=torch.long), tags])
         # 遷移行列のスコアを合算
         for i, feat in enumerate(feats):
             score += self.transitions[tags[i+1], tags[i]] + feat[tags[i+1]]
@@ -99,26 +105,35 @@ class BiLSTM_CRF(nn.Module):
         return score
 
     def _viterbi_decode(self, feats):
-        backpointers = []
+        backpointers = []  # 各単語の次のタグのインデックスリスト
+        # 遷移スコアを初期化
         init_vvars = torch.full((1, self.tagset_size), -10000.)
         init_vvars[0][self.tag_to_ix[self.start_tag]] = 0
         forward_var = init_vvars
 
+        # 各単語に対して各品詞のスコアを計算
         for feat in feats:
-            bptrs_t = []
-            viterbivars_t = []
+            # 候補タグ
+            bptrs_t = []  # 最大確率タグのID
+            viterbivars_t = []  # 最大確率のタグのスコア
             for next_tag in range(self.tagset_size):
+                # 次のタグ候補は上で初期化したものに遷移行列のベクトルを足し合わせたベクトル
                 next_tag_var = forward_var + self.transitions[next_tag]
+                # 最大（確率）のタグを取り出す
                 best_tag_id = argmax(next_tag_var)
                 bptrs_t.append(best_tag_id)
                 viterbivars_t.append(next_tag_var[0][best_tag_id].view(1))
+            # 入力単語（特徴量）に遷移スコアを加えて遷移行列を構築
             forward_var = (torch.cat(viterbivars_t)+feat).view(1, -1)
             backpointers.append(bptrs_t)
 
-        terminal_var = forward_var + self.transitions[self.tag_to_ix[self.stop_tag]]
+        # 終了タグのスコアを計算.終了タグの遷移行列を取り出す
+        terminal_var = forward_var + self.transitions[
+                                        self.tag_to_ix[self.stop_tag]]
         best_tag_id = argmax(terminal_var)
         path_score = terminal_var[0][best_tag_id]
 
+        # 終了タグから逆向きにパスを計算
         best_path = [best_tag_id]
         for bptrs_t in reversed(backpointers):
             best_tag_id = bptrs_t[best_tag_id]
