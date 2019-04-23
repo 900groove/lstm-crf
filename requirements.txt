@@ -9,3 +9,4 @@ numpy
 pandas
 torch
 sparqlwrapper
+mecab-python3

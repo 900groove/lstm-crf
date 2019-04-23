@@ -1,4 +1,5 @@
 import pickle
+import torch
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from lstm_crf import BiLSTM_CRF
@@ -8,9 +9,9 @@ from util import NameDataset
 START_TAG = "<START>"
 STOP_TAG = "<STOP>"
 EMBEDDING_DIM = 100
-HIDDEN_DIM = 100
+HIDDEN_DIM = 200
 TRAINIG_EPOCH = 5
-BATCH_SIZE = 128
+BATCH_SIZE = 128 
 # DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 DEVICE = 'cpu'
 
@@ -64,5 +65,7 @@ if __name__ == '__main__':
     model = model.to(DEVICE)
     optimizer = optim.Adam(model.parameters(), lr=0.01, weight_decay=1e-4)
     model = train(model, optimizer, dataloader)
-    with open('../model/trained_model.pickle', mode='wb') as f:
-        pickle.dump(model, f)
+    
+    #with open('../model/trained_model.pickle', mode='wb') as f:
+    #    pickle.dump(model, f)
+    torch.save(model.state_dict(), '../model/trained_model.model')

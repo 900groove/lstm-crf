@@ -40,4 +40,4 @@ if __name__ == '__main__':
         else:
             break
 
-    df.to_csv('./data/data.csv', index=False)
+    df.to_csv('../data/data.csv', index=False)
