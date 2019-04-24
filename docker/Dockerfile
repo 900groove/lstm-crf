@@ -1,19 +1,23 @@
 FROM ubuntu:16.04
 
-RUN apt-get update && apt-get install -y \
+RUN apt update && apt install -y \
     git \
-    python3.6 \
+    make \
+    curl \
+    wget \
+    xz-utils \
+    sudo \
+    file \
+    python3.5 \
     python3-pip \
     python3-dev \
     mecab \
+    libmecab-dev \
     mecab-ipadic-utf8
 
-WORKDIR /opt
-RUN git clone --depth 1 https://github.com/neologd/mecab-ipadic-neologd.git \
-  && cd mecab-ipadic-neologd \
-  && ./bin/install-mecab-ipadic-neologd -n -y \
-  && cd .. \
-  && rm -rf mecab-ipadic-neologd
+RUN git clone --depth 1 https://github.com/neologd/mecab-ipadic-neologd.git\
+    && cd mecab-ipadic-neologd\
+    && bin/install-mecab-ipadic-neologd -n -y
 
 RUN pip3 install --upgrade pip
 
