@@ -11,21 +11,23 @@ STOP_TAG = "<STOP>"
 EMBEDDING_DIM = 100
 HIDDEN_DIM = 200
 TRAINIG_EPOCH = 5
-BATCH_SIZE = 128 
+BATCH_SIZE = 128
 # DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 DEVICE = 'cpu'
 
 
+"""
 with open('../model/word_to_ix.pickle', mode='rb') as f:
     word_to_ix = pickle.load(f)
 
-"""
 with open('../data/train_data.pickle', mode='rb') as f:
     data_pair = pickle.load(f)
 tag_to_ix = {"0": 0, "1": 1, START_TAG: 2, STOP_TAG: 3}
 """
+with open('../data/word_to_ix_nikkei.pickle', mode='rb') as f:
+    word_to_ix = pickle.load(f)
 
-with open('../data/train_data2.pickle', mode='rb') as f:
+with open('../data/nikkei.pickle', mode='rb') as f:
     data_pair = pickle.load(f)
 tag_to_ix = {'*': 0,
              'サ変接続': 1,
@@ -65,7 +67,6 @@ if __name__ == '__main__':
     model = model.to(DEVICE)
     optimizer = optim.Adam(model.parameters(), lr=0.01, weight_decay=1e-4)
     model = train(model, optimizer, dataloader)
-    
-    #with open('../model/trained_model.pickle', mode='wb') as f:
+    # with open('../model/trained_model.pickle', mode='wb') as f:
     #    pickle.dump(model, f)
     torch.save(model.state_dict(), '../model/trained_model.model')
