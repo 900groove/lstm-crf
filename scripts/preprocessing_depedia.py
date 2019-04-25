@@ -34,8 +34,8 @@ def find_str_index(target, sentence):
         if i == 0:
             loc = sentence.find(target)
         else:
-            loc = sentence.find(target, loc+len(target))
-        result[loc: loc+len(target)] = 1
+            loc = sentence.find(target, loc + len(target))
+        result[loc: loc + len(target)] = 1
     result = [str(int(i)) for i in result]
     return (list(sentence), result)
 

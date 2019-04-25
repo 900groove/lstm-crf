@@ -3,20 +3,20 @@ import torch
 from torch.utils.data import Dataset
 
 
-def parse_text(text):
-    tagger = MeCab.Tagger(' -d /usr/local/lib/mecab/dic/mecab-ipadic-neologd')
-    tagger.parse("")
-    node = tagger.parseToNode(text)
-
-    wordlist = []
-    hinshilist = []
-    while node:
-        target = node.surface
-        hinshi3 = node.feature.split(',')[2]
-        wordlist.append(target)
-        hinshilist.append(hinshi3)
-        node = node.next
-    return wordlist[1: -1], hinshilist[1: -1]  # BOSとEOSを除外
+def load_data(filepath):
+    sents, labels = [], []
+    words, tags = [], []
+    with open(filepath) as f:
+        for line in f:
+            if line:
+                word, tag = line.split('\t')
+                words.append(word)
+                tags.append(tag)
+            else:
+                sents.append(words)
+                labels.append(tags)
+                words, tags = [], []
+    return sents, labels
 
 
 def prepare_sequence(seq, to_ix):

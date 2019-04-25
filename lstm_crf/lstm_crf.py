@@ -19,7 +19,7 @@ def log_sum_exp(vec):
     """対数除算のオーバーフロー及びアンダーフロー回避"""
     max_score = vec[0, argmax(vec)]
     max_score_broadcast = max_score.view(1, -1).expand(1, vec.size()[1])
-    return max_score + torch.log(torch.sum(torch.exp(vec-max_score_broadcast)))
+    return max_score + torch.log(torch.sum(torch.exp(vec - max_score_broadcast)))
 
 
 class BiLSTM_CRF(nn.Module):
@@ -34,7 +34,7 @@ class BiLSTM_CRF(nn.Module):
 
         self.word_embeds = nn.Embedding(vocab_size, embedding_dim)
         self.lstm = nn.LSTM(embedding_dim,
-                            hidden_dim//2,
+                            hidden_dim // 2,
                             num_layers=1,
                             bidirectional=True)
         self.dropout = nn.Dropout(0.2)
@@ -44,14 +44,14 @@ class BiLSTM_CRF(nn.Module):
         self.transitions = nn.Parameter(
             torch.randn(self.tagset_size, self.tagset_size))
         self.transitions.data[tag_to_ix[START_TAG], :] = -10000
-        self.transitions.data[:,  tag_to_ix[STOP_TAG]] = -10000
+        self.transitions.data[:, tag_to_ix[STOP_TAG]] = -10000
         self.start_tag = START_TAG
         self.stop_tag = STOP_TAG
 
     def init_hidden(self):
         """LSTMのメモリを初期化"""
-        return (torch.randn(2, 1, self.hidden_dim//2),
-                torch.randn(2, 1, self.hidden_dim//2))
+        return (torch.randn(2, 1, self.hidden_dim // 2),
+                torch.randn(2, 1, self.hidden_dim // 2))
 
     def _forward_alg(self, feats):
         """観測行列スコア計算"""
@@ -67,8 +67,7 @@ class BiLSTM_CRF(nn.Module):
             # 特定単語に対するそれぞれの品詞
             for next_tag in range(self.tagset_size):
                 # 単語と品詞の共起スコアを計算（初期化した数値を取り出す）
-                emit_score = feat[next_tag].view(1, -1).expand(
-                                                        1, self.tagset_size)
+                emit_score = feat[next_tag].view(1, -1).expand(1, self.tagset_size)
                 # 遷移スコアを計算（初期化した数値を取り出す）
                 trans_score = self.transitions[next_tag].view(1, -1)
                 # 次のタグは初期化された遷移行列に共起スコアと遷移スコアを適応させて計算
@@ -76,8 +75,7 @@ class BiLSTM_CRF(nn.Module):
                 # 特定単語の各品詞スコアを格納
                 alphas_t.append(log_sum_exp(next_tag_var).view(1))
             forward_var = torch.cat(alphas_t).view(1, -1)
-        terminal_var = forward_var + self.transitions[
-                                            self.tag_to_ix[self.stop_tag]]
+        terminal_var = forward_var + self.transitions[self.tag_to_ix[self.stop_tag]]
         alpha = log_sum_exp(terminal_var)
         return alpha
 
@@ -99,7 +97,7 @@ class BiLSTM_CRF(nn.Module):
                                        dtype=torch.long), tags])
         # 遷移行列のスコアを合算
         for i, feat in enumerate(feats):
-            score += self.transitions[tags[i+1], tags[i]] + feat[tags[i+1]]
+            score += self.transitions[tags[i + 1], tags[i]] + feat[tags[i + 1]]
         # 開始タグと終了タグをリセット
         score += self.transitions[self.tag_to_ix[self.stop_tag], tags[-1]]
         return score
@@ -124,12 +122,11 @@ class BiLSTM_CRF(nn.Module):
                 bptrs_t.append(best_tag_id)
                 viterbivars_t.append(next_tag_var[0][best_tag_id].view(1))
             # 入力単語（特徴量）に遷移スコアを加えて遷移行列を構築
-            forward_var = (torch.cat(viterbivars_t)+feat).view(1, -1)
+            forward_var = (torch.cat(viterbivars_t) + feat).view(1, -1)
             backpointers.append(bptrs_t)
 
         # 終了タグのスコアを計算.終了タグの遷移行列を取り出す
-        terminal_var = forward_var + self.transitions[
-                                        self.tag_to_ix[self.stop_tag]]
+        terminal_var = forward_var + self.transitions[self.tag_to_ix[self.stop_tag]]
         best_tag_id = argmax(terminal_var)
         path_score = terminal_var[0][best_tag_id]
 
